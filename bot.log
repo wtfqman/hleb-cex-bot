@@ -1,0 +1,8 @@
+2026-04-03 20:08:54,991 | INFO | 🚀 Бот запускается
+2026-04-03 20:08:54,993 | INFO | Start polling
+2026-04-03 20:08:56,733 | INFO | Run polling for bot @generation_Xhlebny_Cex_bot id=8579405106 - 'Хлебный Цех'
+2026-04-03 20:09:03,009 | INFO | Update id=415794086 is handled. Duration 1327 ms by bot id=8579405106
+2026-04-03 20:22:28,865 | INFO | Polling stopped
+2026-04-03 20:22:28,866 | ERROR | Failed to fetch updates - TelegramNetworkError: HTTP Client says - ServerDisconnectedError: Server disconnected
+2026-04-03 20:22:28,867 | WARNING | Sleep for 1.000000 seconds and try again... (tryings = 0, bot id = 8579405106)
+2026-04-03 20:22:29,122 | INFO | Polling stopped for bot @generation_Xhlebny_Cex_bot id=8579405106 - 'Хлебный Цех'
