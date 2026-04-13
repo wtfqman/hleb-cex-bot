@@ -28,7 +28,17 @@ logging.basicConfig(
         logging.StreamHandler()
     ]
 )
+FONT_REGULAR = "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"
+FONT_BOLD = "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
 
+
+def load_font_safe(size, bold=False):
+    font_path = FONT_BOLD if bold else FONT_REGULAR
+    try:
+        return ImageFont.truetype(font_path, size)
+    except Exception as e:
+        logging.exception(f"Ошибка загрузки шрифта {font_path}: {e}")
+        return ImageFont.truetype(FONT_REGULAR, size)
 # ==================================================
 # ГЕНЕРАЦИЯ ЦЕННИКА (БЕЗ ПАДЕНИЙ)
 # ==================================================
@@ -141,20 +151,16 @@ def generate_compressed_png(name: str, price: str, weight: str) -> bytes:
         TEXT_ZONE_WIDTH = divider_x - PADDING * 2 - CONTENT_RIGHT_GAP
         FREE_HEIGHT = HEIGHT - TOP_ZONE - BOTTOM_ZONE
 
-        # ---------- Шрифты ----------
+               # ---------- Шрифты ----------
         def load_font(size, bold=False):
-            try:
-                return ImageFont.truetype(
-                    "arialbd.ttf" if bold else "arial.ttf", size
-                )
-            except:
-                return ImageFont.load_default()
+            return load_font_safe(size, bold)
 
         def safe_len(text, font):
             try:
                 return draw.textlength(text, font=font)
             except:
                 return len(text) * font.size * 0.6
+
 
         # ---------- Название (короткое = очень крупно) ----------
         title = name.upper()
@@ -288,14 +294,9 @@ def generate_compact_png(name: str, price: str, weight: str) -> bytes:
     img = Image.new("RGB", (WIDTH, HEIGHT), BG)
     draw = ImageDraw.Draw(img)
 
-    # ---------- utils ----------
+       # ---------- utils ----------
     def load_font(size, bold=False):
-        try:
-            return ImageFont.truetype(
-                "arialbd.ttf" if bold else "arial.ttf", size
-            )
-        except:
-            return ImageFont.load_default()
+        return load_font_safe(size, bold)
 
     def safe_len(text, font):
         try:
