@@ -8,7 +8,7 @@ from aiogram import Bot, Dispatcher, F
 from aiogram.types import (
     Message,
     InlineKeyboardMarkup,
-    InlineKeyboardButton
+    InlineKeyboardButton,
 )
 from aiogram.filters import Command
 
@@ -25,27 +25,34 @@ logging.basicConfig(
     format="%(asctime)s | %(levelname)s | %(message)s",
     handlers=[
         logging.FileHandler("bot.log", encoding="utf-8"),
-        logging.StreamHandler()
-    ]
+        logging.StreamHandler(),
+    ],
 )
+
 FONT_REGULAR = "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"
 FONT_BOLD = "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
 
 
-def load_font_safe(size, bold=False):
+def load_font_safe(size: int, bold: bool = False):
     font_path = FONT_BOLD if bold else FONT_REGULAR
     try:
         return ImageFont.truetype(font_path, size)
     except Exception as e:
         logging.exception(f"Ошибка загрузки шрифта {font_path}: {e}")
         return ImageFont.truetype(FONT_REGULAR, size)
+
+
 # ==================================================
-# ГЕНЕРАЦИЯ ЦЕННИКА (БЕЗ ПАДЕНИЙ)
+# ЛОГОТИП ПШЕНИЦЫ
 # ==================================================
-# ГЕНЕРАЦИЯ PNG
-# ==================================================
-def draw_wheat_logo(draw, canvas_width: int, *, size: int, top_margin: int, right_margin: int) -> None:
-    # Небольшой программный тонкий колос в правом верхнем углу без внешних файлов.
+def draw_wheat_logo(
+    draw,
+    canvas_width: int,
+    *,
+    size: int,
+    top_margin: int,
+    right_margin: int,
+) -> None:
     base_x = canvas_width - right_margin - size
     base_y = top_margin
 
@@ -56,7 +63,7 @@ def draw_wheat_logo(draw, canvas_width: int, *, size: int, top_margin: int, righ
     def point(rel_x: float, rel_y: float):
         return (
             int(base_x + size * rel_x),
-            int(base_y + size * rel_y)
+            int(base_y + size * rel_y),
         )
 
     stem_start = point(0.20, 0.96)
@@ -82,18 +89,18 @@ def draw_wheat_logo(draw, canvas_width: int, *, size: int, top_margin: int, righ
                 left_tip[0] - grain_radius,
                 left_tip[1] - grain_radius,
                 left_tip[0] + grain_radius,
-                left_tip[1] + grain_radius
+                left_tip[1] + grain_radius,
             ],
-            fill="white"
+            fill="white",
         )
         draw.ellipse(
             [
                 right_tip[0] - grain_radius,
                 right_tip[1] - grain_radius,
                 right_tip[0] + grain_radius,
-                right_tip[1] + grain_radius
+                right_tip[1] + grain_radius,
             ],
-            fill="white"
+            fill="white",
         )
 
     top_tip = point(0.66, 0.04)
@@ -103,13 +110,21 @@ def draw_wheat_logo(draw, canvas_width: int, *, size: int, top_margin: int, righ
             top_tip[0] - grain_radius,
             top_tip[1] - grain_radius,
             top_tip[0] + grain_radius,
-            top_tip[1] + grain_radius
+            top_tip[1] + grain_radius,
         ],
-        fill="white"
+        fill="white",
     )
 
 
-def add_wheat_logo(img, draw, canvas_width: int, *, size: int, top_margin: int, right_margin: int) -> None:
+def add_wheat_logo(
+    img,
+    draw,
+    canvas_width: int,
+    *,
+    size: int,
+    top_margin: int,
+    right_margin: int,
+) -> None:
     base_dir = Path(__file__).resolve().parent if "__file__" in globals() else Path.cwd()
     logo_path = base_dir / "assets" / "wheat_white.png"
 
@@ -130,10 +145,13 @@ def add_wheat_logo(img, draw, canvas_width: int, *, size: int, top_margin: int, 
         canvas_width,
         size=size,
         top_margin=top_margin,
-        right_margin=right_margin
+        right_margin=right_margin,
     )
 
 
+# ==================================================
+# ГЕНЕРАЦИЯ БОЛЬШОГО ЦЕННИКА
+# ==================================================
 def generate_compressed_png(name: str, price: str, weight: str) -> bytes:
     try:
         WIDTH, HEIGHT = 1100, 320
@@ -147,22 +165,20 @@ def generate_compressed_png(name: str, price: str, weight: str) -> bytes:
         BOTTOM_ZONE = 68
         PRICE_ZONE_WIDTH = 286
         CONTENT_RIGHT_GAP = 24
+
         divider_x = WIDTH - PRICE_ZONE_WIDTH
         TEXT_ZONE_WIDTH = divider_x - PADDING * 2 - CONTENT_RIGHT_GAP
         FREE_HEIGHT = HEIGHT - TOP_ZONE - BOTTOM_ZONE
 
-               # ---------- Шрифты ----------
         def load_font(size, bold=False):
             return load_font_safe(size, bold)
 
         def safe_len(text, font):
             try:
                 return draw.textlength(text, font=font)
-            except:
-                return len(text) * font.size * 0.6
+            except Exception:
+                return len(text) * getattr(font, "size", 20) * 0.6
 
-
-        # ---------- Название (короткое = очень крупно) ----------
         title = name.upper()
 
         if len(title) <= 10:
@@ -206,23 +222,21 @@ def generate_compressed_png(name: str, price: str, weight: str) -> bytes:
         total_text_height = font_size * (2 if line2 else 1) + (LINE_SPACING if line2 else 0)
         text_y = TOP_ZONE + (FREE_HEIGHT - total_text_height) // 2
 
-        # ---------- Правая ценовая зона ----------
         draw.rectangle(
             [(divider_x, 0), (WIDTH, HEIGHT)],
-            fill="#131313"
+            fill="#131313",
         )
         draw.line(
             [(divider_x, 18), (divider_x, HEIGHT - 18)],
             fill="#3b3b3b",
-            width=2
+            width=2,
         )
 
-        # ---------- Верхняя подпись ----------
         draw.text(
             (PADDING, 12),
             "Хлебный цех",
             fill=(255, 255, 255, 80),
-            font=load_font(20)
+            font=load_font(20),
         )
 
         draw.text((PADDING, text_y), line1, fill="white", font=font_title)
@@ -231,18 +245,16 @@ def generate_compressed_png(name: str, price: str, weight: str) -> bytes:
                 (PADDING, text_y + font_size + LINE_SPACING),
                 line2,
                 fill="white",
-                font=font_title
+                font=font_title,
             )
 
-        # ---------- Вес ----------
         draw.text(
             (PADDING, HEIGHT - 50),
             f"{weight} г",
             fill="#cfcfcf",
-            font=load_font(32)
+            font=load_font(32),
         )
 
-        # ---------- Цена ----------
         price_text = str(price)
         price_font_size = 132
         price_column_inner_width = PRICE_ZONE_WIDTH - 56
@@ -258,6 +270,11 @@ def generate_compressed_png(name: str, price: str, weight: str) -> bytes:
 
             price_font_size -= 4
 
+        font_price = load_font(price_font_size, True)
+        bbox = draw.textbbox((0, 0), price_text, font=font_price)
+        pw = bbox[2] - bbox[0]
+        ph = bbox[3] - bbox[1]
+
         price_x = divider_x + (PRICE_ZONE_WIDTH - pw) // 2
         price_y = (HEIGHT - ph) // 2 - 8
 
@@ -266,10 +283,9 @@ def generate_compressed_png(name: str, price: str, weight: str) -> bytes:
             (price_x + pw + 6, price_y + ph - 40),
             "₽",
             fill="white",
-            font=load_font(42, True)
+            font=load_font(42, True),
         )
 
-        # ---------- Сохранение ----------
         buffer = io.BytesIO()
         img.save(buffer, format="PNG", optimize=True)
         buffer.seek(0)
@@ -280,12 +296,17 @@ def generate_compressed_png(name: str, price: str, weight: str) -> bytes:
 
         img = Image.new("RGB", (500, 200), "#8b0000")
         draw = ImageDraw.Draw(img)
-        draw.text((20, 80), "ОШИБКА ЦЕННИКА", fill="white")
+        draw.text((20, 80), "ОШИБКА ЦЕННИКА", fill="white", font=load_font_safe(28, True))
 
         buffer = io.BytesIO()
         img.save(buffer, format="PNG")
         buffer.seek(0)
         return buffer.getvalue()
+
+
+# ==================================================
+# ГЕНЕРАЦИЯ КОМПАКТНОГО ЦЕННИКА
+# ==================================================
 def generate_compact_png(name: str, price: str, weight: str) -> bytes:
     WIDTH, HEIGHT = 420, 320
     BG = "#0f0f0f"
@@ -294,33 +315,28 @@ def generate_compact_png(name: str, price: str, weight: str) -> bytes:
     img = Image.new("RGB", (WIDTH, HEIGHT), BG)
     draw = ImageDraw.Draw(img)
 
-       # ---------- utils ----------
     def load_font(size, bold=False):
         return load_font_safe(size, bold)
 
     def safe_len(text, font):
         try:
             return draw.textlength(text, font=font)
-        except:
-            return len(text) * font.size * 0.6
+        except Exception:
+            return len(text) * getattr(font, "size", 20) * 0.6
 
-    # ---------- зоны ----------
-    TOP_ZONE = 36          # водяной знак
-    BOTTOM_ZONE = 110      # цена + вес
+    TOP_ZONE = 36
+    BOTTOM_ZONE = 110
     FREE_HEIGHT = HEIGHT - TOP_ZONE - BOTTOM_ZONE
 
-    # ---------- водяной знак ----------
     draw.text(
         (PADDING, 10),
         "Хлебный цех",
         fill=(255, 255, 255, 80),
-        font=load_font(18)
+        font=load_font(18),
     )
 
-    # ---------- НАЗВАНИЕ (автоскейл + центр зоны) ----------
     title = name.upper()
 
-    # короткие названия можно сильнее увеличить
     MAX_FONT = 54 if len(title) <= 10 else 46
     MIN_FONT = 28
     LINE_SPACING = 6
@@ -364,12 +380,12 @@ def generate_compact_png(name: str, price: str, weight: str) -> bytes:
             (PADDING, text_y + font_size + LINE_SPACING),
             line2,
             fill="white",
-            font=font_title
+            font=font_title,
         )
 
-    # ---------- ЦЕНА (жёстко внизу) ----------
     font_price = load_font(92, True)
     bbox = draw.textbbox((0, 0), price, font=font_price)
+    pw = bbox[2] - bbox[0]
     ph = bbox[3] - bbox[1]
 
     price_y = HEIGHT - BOTTOM_ZONE + 20
@@ -377,29 +393,28 @@ def generate_compact_png(name: str, price: str, weight: str) -> bytes:
         (PADDING, price_y),
         price,
         fill="white",
-        font=font_price
+        font=font_price,
     )
 
-    # ---------- ₽ ----------
     draw.text(
-        (PADDING + bbox[2] + 6, price_y + ph - 42),
+        (PADDING + pw + 6, price_y + ph - 42),
         "₽",
         fill="white",
-        font=load_font(36, True)
+        font=load_font(36, True),
     )
 
-    # ---------- ВЕС (справа от цены) ----------
     draw.text(
-        (WIDTH - 80, price_y + ph - 28),
-        weight,
+        (WIDTH - 95, price_y + ph - 28),
+        f"{weight} г",
         fill="#cfcfcf",
-        font=load_font(32)
+        font=load_font(32),
     )
 
     buffer = io.BytesIO()
     img.save(buffer, format="PNG", optimize=True)
     buffer.seek(0)
     return buffer.getvalue()
+
 
 # ==================================================
 # PNG → PDF
@@ -423,7 +438,7 @@ def pdf_keyboard():
             [
                 InlineKeyboardButton(
                     text="📄 Создать PDF",
-                    callback_data="make_pdf"
+                    callback_data="make_pdf",
                 )
             ]
         ]
@@ -434,6 +449,7 @@ def pdf_keyboard():
 # ХРАНЕНИЕ PNG
 # ==================================================
 user_last_png = {}
+
 
 # ==================================================
 # BOT / DISPATCHER
@@ -462,7 +478,6 @@ async def process_label(message: Message):
     text = message.text.strip()
     logging.info(f"📩 Получено сообщение: {text}")
 
-    # ---------- ФОРМАТ С ЗАПЯТЫМИ (БОЛЬШОЙ) ----------
     if "," in text:
         parts = [p.strip() for p in text.split(",")]
         if len(parts) < 3:
@@ -474,8 +489,6 @@ async def process_label(message: Message):
         weight = "".join(filter(str.isdigit, parts[2]))
 
         png_bytes = generate_compressed_png(name, price, weight)
-
-    # ---------- ФОРМАТ С ПРОБЕЛАМИ (КОМПАКТНЫЙ) ----------
     else:
         parts = text.split()
         if len(parts) < 3:
@@ -500,7 +513,7 @@ async def process_label(message: Message):
     await message.answer_photo(
         photo=photo,
         caption="✅ Ценник готов",
-        reply_markup=pdf_keyboard()
+        reply_markup=pdf_keyboard(),
     )
 
 
@@ -519,10 +532,11 @@ async def make_pdf(callback):
 
     await callback.message.answer_document(
         document=BufferedInputFile(pdf_bytes, filename="label.pdf"),
-        caption="📄 PDF ценника"
+        caption="📄 PDF ценника",
     )
 
     await callback.answer()
+
 
 # ==================================================
 # АВТОТЕСТ ГЕНЕРАТОРА
@@ -531,7 +545,7 @@ def test_label_generator():
     test = generate_compressed_png(
         "Чиабатта пшеничная мини",
         "89",
-        "230"
+        "230",
     )
     assert test and len(test) > 1000
     logging.info("✅ Генератор ценников работает")
@@ -549,5 +563,7 @@ async def main():
         except Exception as e:
             logging.error(f"❌ Polling упал: {e}")
             await asyncio.sleep(5)
+
+
 if __name__ == "__main__":
     asyncio.run(main())
