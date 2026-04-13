@@ -29,8 +29,8 @@ logging.basicConfig(
     ],
 )
 
-FONT_REGULAR = "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"
-FONT_BOLD = "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
+FONT_REGULAR = "/usr/share/fonts/truetype/dejavu/DejaVuSansCondensed.ttf"
+FONT_BOLD = "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"
 
 
 def load_font_safe(size: int, bold: bool = False):
@@ -182,9 +182,9 @@ def generate_compressed_png(name: str, price: str, weight: str) -> bytes:
         title = name.upper()
 
         if len(title) <= 10:
-            MAX_FONT = 78
+            MAX_FONT = 74
         else:
-            MAX_FONT = 68
+            MAX_FONT = 64
 
         MIN_FONT = 34
         LINE_SPACING = 8
@@ -205,7 +205,7 @@ def generate_compressed_png(name: str, price: str, weight: str) -> bytes:
         font_size = MAX_FONT
 
         while font_size >= MIN_FONT:
-            font_title = load_font(font_size, True)
+            font_title = load_font(font_size, False)
             line1, line2 = split_two_lines(title, font_title)
 
             lines = 2 if line2 else 1
@@ -216,7 +216,7 @@ def generate_compressed_png(name: str, price: str, weight: str) -> bytes:
 
             font_size -= 2
 
-        font_title = load_font(font_size, True)
+        font_title = load_font(font_size, False)
         line1, line2 = split_two_lines(title, font_title)
 
         total_text_height = font_size * (2 if line2 else 1) + (LINE_SPACING if line2 else 0)
@@ -256,11 +256,11 @@ def generate_compressed_png(name: str, price: str, weight: str) -> bytes:
         )
 
         price_text = str(price)
-        price_font_size = 132
+        price_font_size = 124
         price_column_inner_width = PRICE_ZONE_WIDTH - 56
 
         while price_font_size >= 84:
-            font_price = load_font(price_font_size, True)
+            font_price = load_font(price_font_size, False)
             bbox = draw.textbbox((0, 0), price_text, font=font_price)
             pw = bbox[2] - bbox[0]
             ph = bbox[3] - bbox[1]
@@ -270,7 +270,7 @@ def generate_compressed_png(name: str, price: str, weight: str) -> bytes:
 
             price_font_size -= 4
 
-        font_price = load_font(price_font_size, True)
+        font_price = load_font(price_font_size, False)
         bbox = draw.textbbox((0, 0), price_text, font=font_price)
         pw = bbox[2] - bbox[0]
         ph = bbox[3] - bbox[1]
@@ -283,7 +283,7 @@ def generate_compressed_png(name: str, price: str, weight: str) -> bytes:
             (price_x + pw + 6, price_y + ph - 40),
             "₽",
             fill="white",
-            font=load_font(42, True),
+            font=load_font(38, True),
         )
 
         buffer = io.BytesIO()
@@ -337,7 +337,7 @@ def generate_compact_png(name: str, price: str, weight: str) -> bytes:
 
     title = name.upper()
 
-    MAX_FONT = 54 if len(title) <= 10 else 46
+    MAX_FONT = 50 if len(title) <= 10 else 44
     MIN_FONT = 28
     LINE_SPACING = 6
 
@@ -357,7 +357,7 @@ def generate_compact_png(name: str, price: str, weight: str) -> bytes:
     font_size = MAX_FONT
 
     while font_size >= MIN_FONT:
-        font_title = load_font(font_size, True)
+        font_title = load_font(font_size, False)
         line1, line2 = split_two_lines(title, font_title)
 
         lines = 2 if line2 else 1
@@ -368,7 +368,7 @@ def generate_compact_png(name: str, price: str, weight: str) -> bytes:
 
         font_size -= 2
 
-    font_title = load_font(font_size, True)
+    font_title = load_font(font_size, False)
     line1, line2 = split_two_lines(title, font_title)
 
     total_text_height = font_size * (2 if line2 else 1) + (LINE_SPACING if line2 else 0)
@@ -383,7 +383,7 @@ def generate_compact_png(name: str, price: str, weight: str) -> bytes:
             font=font_title,
         )
 
-    font_price = load_font(92, True)
+    font_price = load_font(86, False)
     bbox = draw.textbbox((0, 0), price, font=font_price)
     pw = bbox[2] - bbox[0]
     ph = bbox[3] - bbox[1]
@@ -400,14 +400,14 @@ def generate_compact_png(name: str, price: str, weight: str) -> bytes:
         (PADDING + pw + 6, price_y + ph - 42),
         "₽",
         fill="white",
-        font=load_font(36, True),
+        font=load_font(32, False),
     )
 
     draw.text(
         (WIDTH - 95, price_y + ph - 28),
         f"{weight} г",
         fill="#cfcfcf",
-        font=load_font(32),
+        font=load_font(30),
     )
 
     buffer = io.BytesIO()
