@@ -1,6 +1,7 @@
 ﻿import asyncio
 import logging
 import io
+from pathlib import Path
 
 from aiogram.types import BufferedInputFile
 from aiogram import Bot, Dispatcher, F
@@ -33,6 +34,96 @@ logging.basicConfig(
 # ==================================================
 # ГЕНЕРАЦИЯ PNG
 # ==================================================
+def draw_wheat_logo(draw, canvas_width: int, *, size: int, top_margin: int, right_margin: int) -> None:
+    # Небольшой программный тонкий колос в правом верхнем углу без внешних файлов.
+    base_x = canvas_width - right_margin - size
+    base_y = top_margin
+
+    stem_width = max(2, size // 14)
+    branch_width = max(1, stem_width - 1)
+    grain_radius = max(2, size // 12)
+
+    def point(rel_x: float, rel_y: float):
+        return (
+            int(base_x + size * rel_x),
+            int(base_y + size * rel_y)
+        )
+
+    stem_start = point(0.20, 0.96)
+    stem_mid = point(0.36, 0.56)
+    stem_end = point(0.58, 0.12)
+    draw.line([stem_start, stem_mid, stem_end], fill="white", width=stem_width)
+
+    for rel_x, rel_y in [
+        (0.30, 0.78),
+        (0.38, 0.62),
+        (0.46, 0.46),
+        (0.54, 0.30),
+    ]:
+        center = point(rel_x, rel_y)
+        left_tip = point(rel_x - 0.16, rel_y - 0.08)
+        right_tip = point(rel_x + 0.12, rel_y - 0.10)
+
+        draw.line([center, left_tip], fill="white", width=branch_width)
+        draw.line([center, right_tip], fill="white", width=branch_width)
+
+        draw.ellipse(
+            [
+                left_tip[0] - grain_radius,
+                left_tip[1] - grain_radius,
+                left_tip[0] + grain_radius,
+                left_tip[1] + grain_radius
+            ],
+            fill="white"
+        )
+        draw.ellipse(
+            [
+                right_tip[0] - grain_radius,
+                right_tip[1] - grain_radius,
+                right_tip[0] + grain_radius,
+                right_tip[1] + grain_radius
+            ],
+            fill="white"
+        )
+
+    top_tip = point(0.66, 0.04)
+    draw.line([stem_end, top_tip], fill="white", width=branch_width)
+    draw.ellipse(
+        [
+            top_tip[0] - grain_radius,
+            top_tip[1] - grain_radius,
+            top_tip[0] + grain_radius,
+            top_tip[1] + grain_radius
+        ],
+        fill="white"
+    )
+
+
+def add_wheat_logo(img, draw, canvas_width: int, *, size: int, top_margin: int, right_margin: int) -> None:
+    base_dir = Path(__file__).resolve().parent if "__file__" in globals() else Path.cwd()
+    logo_path = base_dir / "assets" / "wheat_white.png"
+
+    if logo_path.exists():
+        try:
+            with Image.open(logo_path) as logo_source:
+                logo = logo_source.convert("RGBA")
+
+            logo.thumbnail((size, size), Image.LANCZOS)
+            logo_x = canvas_width - right_margin - logo.width
+            img.paste(logo, (logo_x, top_margin), logo)
+            return
+        except Exception:
+            logging.exception("❌ Ошибка загрузки логотипа пшеницы")
+
+    draw_wheat_logo(
+        draw,
+        canvas_width,
+        size=size,
+        top_margin=top_margin,
+        right_margin=right_margin
+    )
+
+
 def generate_compressed_png(name: str, price: str, weight: str) -> bytes:
     try:
         WIDTH, HEIGHT = 1100, 320
@@ -41,9 +132,14 @@ def generate_compressed_png(name: str, price: str, weight: str) -> bytes:
         img = Image.new("RGB", (WIDTH, HEIGHT), BG)
         draw = ImageDraw.Draw(img)
 
-        PADDING = 32
-        PRICE_ZONE_WIDTH = 280
-        TEXT_ZONE_WIDTH = WIDTH - PRICE_ZONE_WIDTH - PADDING * 2
+        PADDING = 34
+        TOP_ZONE = 42
+        BOTTOM_ZONE = 68
+        PRICE_ZONE_WIDTH = 286
+        CONTENT_RIGHT_GAP = 24
+        divider_x = WIDTH - PRICE_ZONE_WIDTH
+        TEXT_ZONE_WIDTH = divider_x - PADDING * 2 - CONTENT_RIGHT_GAP
+        FREE_HEIGHT = HEIGHT - TOP_ZONE - BOTTOM_ZONE
 
         # ---------- Шрифты ----------
         def load_font(size, bold=False):
@@ -63,12 +159,12 @@ def generate_compressed_png(name: str, price: str, weight: str) -> bytes:
         # ---------- Название (короткое = очень крупно) ----------
         title = name.upper()
 
-        if len(title) <= 6:
-            MAX_FONT = 72   # 👈 КОРОТКИЕ НАЗВАНИЯ
+        if len(title) <= 10:
+            MAX_FONT = 78
         else:
-            MAX_FONT = 56
+            MAX_FONT = 68
 
-        MIN_FONT = 30
+        MIN_FONT = 34
         LINE_SPACING = 8
 
         def split_two_lines(text, font):
@@ -93,7 +189,7 @@ def generate_compressed_png(name: str, price: str, weight: str) -> bytes:
             lines = 2 if line2 else 1
             total_h = lines * font_size + (LINE_SPACING if line2 else 0)
 
-            if total_h <= HEIGHT - 90:
+            if total_h <= FREE_HEIGHT:
                 break
 
             font_size -= 2
@@ -102,7 +198,26 @@ def generate_compressed_png(name: str, price: str, weight: str) -> bytes:
         line1, line2 = split_two_lines(title, font_title)
 
         total_text_height = font_size * (2 if line2 else 1) + (LINE_SPACING if line2 else 0)
-        text_y = (HEIGHT - total_text_height) // 2
+        text_y = TOP_ZONE + (FREE_HEIGHT - total_text_height) // 2
+
+        # ---------- Правая ценовая зона ----------
+        draw.rectangle(
+            [(divider_x, 0), (WIDTH, HEIGHT)],
+            fill="#131313"
+        )
+        draw.line(
+            [(divider_x, 18), (divider_x, HEIGHT - 18)],
+            fill="#3b3b3b",
+            width=2
+        )
+
+        # ---------- Верхняя подпись ----------
+        draw.text(
+            (PADDING, 12),
+            "Хлебный цех",
+            fill=(255, 255, 255, 80),
+            font=load_font(20)
+        )
 
         draw.text((PADDING, text_y), line1, fill="white", font=font_title)
         if line2:
@@ -113,32 +228,32 @@ def generate_compressed_png(name: str, price: str, weight: str) -> bytes:
                 font=font_title
             )
 
-        # ---------- Вес (СДЕЛАЛИ КРУПНЕЕ) ----------
+        # ---------- Вес ----------
         draw.text(
-            (PADDING, HEIGHT - 42),
+            (PADDING, HEIGHT - 50),
             f"{weight} г",
-            fill="#d9d9d9",
-            font=load_font(34)  # 👈 было 28
-        )
-
-        # ---------- Разделитель ----------
-        divider_x = WIDTH - PRICE_ZONE_WIDTH
-        draw.line(
-            [(divider_x, 20), (divider_x, HEIGHT - 20)],
-            fill="#4a4a4a",
-            width=2
+            fill="#cfcfcf",
+            font=load_font(32)
         )
 
         # ---------- Цена ----------
         price_text = str(price)
-        font_price = load_font(120, True)
+        price_font_size = 132
+        price_column_inner_width = PRICE_ZONE_WIDTH - 56
 
-        bbox = draw.textbbox((0, 0), price_text, font=font_price)
-        pw = bbox[2] - bbox[0]
-        ph = bbox[3] - bbox[1]
+        while price_font_size >= 84:
+            font_price = load_font(price_font_size, True)
+            bbox = draw.textbbox((0, 0), price_text, font=font_price)
+            pw = bbox[2] - bbox[0]
+            ph = bbox[3] - bbox[1]
+
+            if pw <= price_column_inner_width:
+                break
+
+            price_font_size -= 4
 
         price_x = divider_x + (PRICE_ZONE_WIDTH - pw) // 2
-        price_y = (HEIGHT - ph) // 2 - 10
+        price_y = (HEIGHT - ph) // 2 - 8
 
         draw.text((price_x, price_y), price_text, fill="white", font=font_price)
         draw.text(
@@ -146,14 +261,6 @@ def generate_compressed_png(name: str, price: str, weight: str) -> bytes:
             "₽",
             fill="white",
             font=load_font(42, True)
-        )
-
-        # ---------- Водяной знак (темнее и у цены) ----------
-        draw.text(
-            (divider_x + 16, 18),
-            "Хлебный цех",
-            fill=(255, 255, 255, 90),  # 👈 темнее
-            font=load_font(22)
         )
 
         # ---------- Сохранение ----------
